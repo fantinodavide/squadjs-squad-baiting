@@ -1,4 +1,4 @@
-## SquadNameValidator
+## SquadBaiting
 Squad Baiting plugin for SquadJS
 
 ### Example configuration
