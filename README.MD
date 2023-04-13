@@ -26,6 +26,7 @@ Squad Baiting plugin for SquadJS
         {
             "name": "Squad baiting is not allowed",
             "enabled": true,
+            "discordLogging": false,
             "baitingCounter": {
                 "min": 0,
                 "max": 6
@@ -41,6 +42,7 @@ Squad Baiting plugin for SquadJS
         {
             "name": "Kick player",
             "enabled": true,
+            "discordLogging": true,
             "baitingCounter": {
                 "min": 7,
                 "max": 15
