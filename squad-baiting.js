@@ -81,7 +81,9 @@ export default class SquadBaiting extends DiscordBasePlugin {
         this.onSquadBaiting = this.onSquadBaiting.bind(this)
         this.formatActionContent = this.formatActionContent.bind(this)
         this.onPlayerDisconnected = this.onPlayerDisconnected.bind(this);
+        this.onPlayerConnected = this.onPlayerConnected.bind(this);
         this.onNewGame = this.onNewGame.bind(this);
+        this.resetPlayerCounters = this.resetPlayerCounters.bind(this);
         // this.discordLog = this.discordLog.bind(this)
 
         this.playerBaiting = new Map();
@@ -94,6 +96,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
     async mount() {
         this.server.on('SQUAD_CREATED', this.onSquadCreated);
         this.server.on('PLAYER_DISCONNECTED', this.onPlayerDisconnected);
+        this.server.on('PLAYER_CONNECTED', this.onPlayerConnected);
         this.server.on('NEW_GAME', this.onNewGame);
 
         let oldSquads = [];
@@ -160,9 +163,9 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
         for (let r of activePlayerRules.concat(activeSquadRules)) {
             if (!r.enabled) continue;
-            for (let a of r.actions) {
+            for (let a of r.actions.filter(act => act.enabled || act.enabled == undefined)) {
                 const formattedContent = this.formatActionContent(a.content, oldSquad, newSquad);
-                this.verbose(1, 'Formatted action content', formattedContent)
+                // this.verbose(1, 'Formatted action content', formattedContent)
                 switch (a.type.toLowerCase()) {
                     case 'rcon':
                         this.server.rcon.execute(formattedContent)
@@ -174,12 +177,22 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     async onPlayerDisconnected(info) {
         const { steamID, name: playerName, teamID } = info.player;
+        // this.verbose(1, 'Disconnected', steamID, playerName, info)
+        this.resetPlayerCounters(steamID)
+    }
+    async onPlayerConnected(info) {
+        const { steamID, name: playerName, teamID } = info.player;
+        this.resetPlayerCounters(steamID)
+    }
+
+    resetPlayerCounters(steamID) {
         this.playerBaiting.set(steamID, 0)
+
     }
 
     async onNewGame(info) {
         this.squadsBaiting = new Map();
-        
+
         if (this.options.resetPlayerCountersAtNewGame)
             this.playerBaiting = new Map();
     }
@@ -190,6 +203,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
             .replace(/\{squad:id\}/ig, oldSquad.squadID)
             .replace(/\{squad:squadid\}/ig, oldSquad.squadID)
             .replace(/\{squad:name\}/ig, oldSquad.squadName)
+            .replace(/\{squad:teamname\}/ig, oldSquad.leader.role.split('_')[ 0 ])
             .replace(/\{old_leader:username\}/ig, oldSquad.leader.name)
             .replace(/\{old_leader:steamid\}/ig, oldSquad.leader.steamID)
             .replace(/\{old_leader:baitingcounter\}/ig, oldSquad.leader.baitingCounter)
