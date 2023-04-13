@@ -84,6 +84,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
         this.onPlayerConnected = this.onPlayerConnected.bind(this);
         this.onNewGame = this.onNewGame.bind(this);
         this.resetPlayerCounters = this.resetPlayerCounters.bind(this);
+        this.sendDiscordRuleLog = this.sendDiscordRuleLog.bind(this);
         // this.discordLog = this.discordLog.bind(this)
 
         this.playerBaiting = new Map();
@@ -134,7 +135,6 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     onSquadCreated(info) {
         this.verbose(1, "Squad Created:", info.player.teamID, info.player.squadID)
-
     }
 
     async unmount() {
@@ -156,8 +156,8 @@ export default class SquadBaiting extends DiscordBasePlugin {
         // await this.warn(oldSquad.leader.steamID, 'Squad baiting is not allowed!')
         await this.warnAdmins(`[${oldSquad.leader.name}] is doing squad baiting.\n  Player's baits: ${oldSquad.leader.baitingCounter}\n\n  Squad Info:\n   Name: ${oldSquad.squadName}\n   Number: ${oldSquad.squadID}\n   Team: ${oldSquad.teamID}\n   Baits: ${oldSquad.baitingCounter}`)
 
-        const activePlayerRules = this.options.playerRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.leader.baitingCounter && r.baitingCounter.max >= oldSquad.leader.baitingCounter);
-        const activeSquadRules = this.options.squadRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.baitingCounter && r.baitingCounter.max >= oldSquad.baitingCounter);
+        const activePlayerRules = this.options.playerRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.leader.baitingCounter && r.baitingCounter.max >= oldSquad.leader.baitingCounter).map(r => ({ ...r, type: 'Player' }));
+        const activeSquadRules = this.options.squadRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.baitingCounter && r.baitingCounter.max >= oldSquad.baitingCounter).map(r => ({ ...r, type: 'Squad' }));
         this.verbose(1, 'Triggered PLAYER rules', activePlayerRules.map(r => r.name))
         this.verbose(1, 'Triggered SQUAD rules', activeSquadRules.map(r => r.name))
 
@@ -165,6 +165,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
             if (!r.enabled) continue;
             for (let a of r.actions.filter(act => act.enabled || act.enabled == undefined)) {
                 const formattedContent = this.formatActionContent(a.content, oldSquad, newSquad);
+                a.formattedContent = formattedContent
                 // this.verbose(1, 'Formatted action content', formattedContent)
                 switch (a.type.toLowerCase()) {
                     case 'rcon':
@@ -172,6 +173,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                         break;
                 }
             }
+            this.sendDiscordRuleLog(r, oldSquad, newSquad);
         }
     }
 
@@ -187,7 +189,6 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     resetPlayerCounters(steamID) {
         this.playerBaiting.set(steamID, 0)
-
     }
 
     async onNewGame(info) {
@@ -207,8 +208,58 @@ export default class SquadBaiting extends DiscordBasePlugin {
             .replace(/\{old_leader:username\}/ig, oldSquad.leader.name)
             .replace(/\{old_leader:steamid\}/ig, oldSquad.leader.steamID)
             .replace(/\{old_leader:baitingcounter\}/ig, oldSquad.leader.baitingCounter)
-            .replace(/\{new_leader:username\}/ig, newSquad.leader.name)
-            .replace(/\{new_leader:steamid\}/ig, newSquad.leader.steamID)
-            .replace(/\{new_leader:baitingcounter\}/ig, newSquad.leader.baitingCounter)
+            .replace(/\{new_leader:username\}/ig, newSquad?.leader?.name)
+            .replace(/\{new_leader:steamid\}/ig, newSquad?.leader?.steamID)
+            .replace(/\{new_leader:baitingcounter\}/ig, newSquad?.leader?.baitingCounter)
+    }
+
+    async sendDiscordRuleLog(rule, oldSquad, newSquad) {
+        if (rule.discordLogging === false) return;
+        const actionsEmbedFields = rule.actions.filter(act => act.enabled || act.enabled == undefined).map(a => ({ name: a.type.toUpperCase(), value: `\`\`\`${a.formattedContent}\`\`\``, inline: false }))
+        await this.sendDiscordMessage({
+            embed: {
+                title: `[${oldSquad.leader.name}] Squad-Baiting`,
+                color: "ee1111",
+                fields: [
+                    {
+                        name: 'Leader\'s Username',
+                        value: oldSquad.leader.name,
+                        inline: true
+                    },
+                    {
+                        name: 'Leader\'s SteamID',
+                        value: `[${oldSquad.leader.steamID}](https://steamcommunity.com/profiles/${oldSquad.leader.steamID})`,
+                        inline: true
+                    },
+                    {
+                        name: 'Team & Squad',
+                        value: `Team: ${oldSquad.teamID}, Squad: ${oldSquad.squadID}`,
+                        inline: true
+                    },
+                    {
+                        name: 'Squad',
+                        value: oldSquad.squadName,
+                        inline: true
+                    },
+                    {
+                        name: 'Team',
+                        value: oldSquad.leader.role.split('_')[ 0 ],
+                        inline: true
+                    },
+                    {
+                        name: 'Triggered Rules',
+                        value: rule.name,
+                        inline: false
+                    },
+                    {
+                        name: 'Executed Actions',
+                        value: ':small_red_triangle_down: :small_red_triangle_down: :small_red_triangle_down: :small_red_triangle_down: :small_red_triangle_down:',
+                        inline: false
+                    },
+                    ...actionsEmbedFields
+                ]
+            },
+            timestamp: (new Date()).toISOString()
+        });
     }
 }
