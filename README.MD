@@ -5,6 +5,7 @@ Squad Baiting plugin for SquadJS
 - `{squad:name}` Name of the squad
 - `{squad:teamid}` TeamID of the squad
 - `{squad:squadid}` SquadID of the squad
+- `{squad:teamname}` Short name of the team
 - `{old_leader:username}` Username of the previous squadleader
 - `{old_leader:steamid}` SteamID of the previous squadleader
 - `{old_leader:baitingcounter}` Amount of squad baiting of the previous squadleader
@@ -32,6 +33,7 @@ Squad Baiting plugin for SquadJS
             "actions": [
                 {
                     "type": "rcon",
+                    "enabled": true,
                     "content": "AdminWarn {old_leader:steamid} \"Squad baiting is not allowed\""
                 }
             ]
@@ -46,6 +48,7 @@ Squad Baiting plugin for SquadJS
             "actions": [
                 {
                     "type": "rcon",
+                    "enabled": false,
                     "content": "AdminKick {old_leader:steamid} \"Squad baiting not allowed\""
                 }
             ]
