@@ -19,6 +19,8 @@ Squad Baiting plugin for SquadJS
     "enabled": true,
     "discordClient": "discord",
     "channelID": "1116600997722661199",
+    "resetPlayerCountersAtNewGame": true,
+    "warnInGameAdmins": true,
     "playerRules": [
         {
             "name": "Squad baiting is not allowed",

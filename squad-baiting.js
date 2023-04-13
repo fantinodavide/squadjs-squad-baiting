@@ -18,8 +18,12 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 default: '',
                 example: '667741905228136459'
             },
-
             warnInGameAdmins: {
+                required: false,
+                default: true,
+                description: ''
+            },
+            resetPlayerCountersAtNewGame: {
                 required: false,
                 default: true,
                 description: ''
@@ -76,6 +80,8 @@ export default class SquadBaiting extends DiscordBasePlugin {
         this.warnAdmins = this.warnAdmins.bind(this)
         this.onSquadBaiting = this.onSquadBaiting.bind(this)
         this.formatActionContent = this.formatActionContent.bind(this)
+        this.onPlayerDisconnected = this.onPlayerDisconnected.bind(this);
+        this.onNewGame = this.onNewGame.bind(this);
         // this.discordLog = this.discordLog.bind(this)
 
         this.playerBaiting = new Map();
@@ -87,6 +93,9 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     async mount() {
         this.server.on('SQUAD_CREATED', this.onSquadCreated);
+        this.server.on('PLAYER_DISCONNECTED', this.onPlayerDisconnected);
+        this.server.on('NEW_GAME', this.onNewGame);
+
         let oldSquads = [];
 
         setInterval(async () => {
@@ -153,7 +162,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
             if (!r.enabled) continue;
             for (let a of r.actions) {
                 const formattedContent = this.formatActionContent(a.content, oldSquad, newSquad);
-                this.verbose(1,'Formatted action content', formattedContent)
+                this.verbose(1, 'Formatted action content', formattedContent)
                 switch (a.type.toLowerCase()) {
                     case 'rcon':
                         this.server.rcon.execute(formattedContent)
@@ -161,6 +170,18 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 }
             }
         }
+    }
+
+    async onPlayerDisconnected(info) {
+        const { steamID, name: playerName, teamID } = info.player;
+        this.playerBaiting.set(steamID, 0)
+    }
+
+    async onNewGame(info) {
+        this.squadsBaiting = new Map();
+        
+        if (this.options.resetPlayerCountersAtNewGame)
+            this.playerBaiting = new Map();
     }
 
     formatActionContent(content, oldSquad, newSquad) {
