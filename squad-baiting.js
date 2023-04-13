@@ -18,10 +18,53 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 default: '',
                 example: '667741905228136459'
             },
+
             warnInGameAdmins: {
                 required: false,
                 default: true,
                 description: ''
+            },
+            playerRules: {
+                required: false,
+                default: [],
+                description: 'Set of rules that will be applied on player events',
+                example: [
+                    {
+                        name: 'Friendly and human-readable name',
+                        enabled: true,
+                        baitingCounter: {
+                            min: 0,
+                            max: 10
+                        },
+                        actions: [
+                            {
+                                type: 'rcon',
+                                content: 'AdminWarn {}'
+                            }
+                        ]
+                    }
+                ]
+            },
+            squadRules: {
+                required: false,
+                default: [],
+                description: 'Set of rules that will be applied on squad events',
+                example: [
+                    {
+                        name: 'Martian-readable name',
+                        enabled: true,
+                        baitingCounter: {
+                            min: 5,
+                            max: Infinity
+                        },
+                        actions: [
+                            {
+                                type: 'rcon',
+                                content: 'AdminWarn {}'
+                            }
+                        ]
+                    }
+                ]
             }
         };
     }
@@ -31,6 +74,8 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
         this.onSquadCreated = this.onSquadCreated.bind(this)
         this.warnAdmins = this.warnAdmins.bind(this)
+        this.onSquadBaiting = this.onSquadBaiting.bind(this)
+        this.formatActionContent = this.formatActionContent.bind(this)
         // this.discordLog = this.discordLog.bind(this)
 
         this.playerBaiting = new Map();
@@ -56,7 +101,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 const match = newSquads.find(ns => ns.squadID == s.squadID && ns.teamID == s.teamID && ns.squadName == s.squadName)
                 const baiting = match && match.leader.steamID != s.leader.steamID;
                 const sqUid = `${s.teamID};${s.squadID};${s.squadName}`;
-                this.verbose(1, 'baiting', sqUid, s.leader.name)
+                // this.verbose(1, 'baiting', sqUid, s.leader.name)
                 if (baiting) {
                     const plBaitingAmount = (this.playerBaiting.get(s.leader.steamID) || 0) + 1;
                     this.playerBaiting.set(s.leader.steamID, plBaitingAmount)
@@ -64,8 +109,10 @@ export default class SquadBaiting extends DiscordBasePlugin {
                     const sqBaitsAmount = (this.squadsBaiting.get(sqUid) || 0) + 1;
                     this.squadsBaiting.set(sqUid, sqBaitsAmount)
 
-                    await this.warn(s.leader.steamID, 'Squad baiting is not allowed!')
-                    await this.warnAdmins(`[${s.leader.name}] is doing squad baiting.\n  Player's baits: ${plBaitingAmount}\n  Squad Info:\n   Name: ${s.squadName}\n   Number: ${s.squadID}\n   Team: ${s.teamID}\n   Baits: ${sqBaitsAmount}`)
+                    s.baitingCounter = sqBaitsAmount
+                    s.leader.baitingCounter = plBaitingAmount
+
+                    this.onSquadBaiting(s, match)
                 }
             })
 
@@ -84,11 +131,49 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     async warnAdmins(message) {
         const admins = await this.server.getAdminsWithPermission('canseeadminchat');
+        if (!this.options.warnInGameAdmins) return;
         for (const player of this.server.players) {
             if (!admins.includes(player.steamID)) continue;
 
-            if (this.options.warnInGameAdmins)
-                await this.warn(player.steamID, message);
+            await this.warn(player.steamID, message);
         }
+    }
+
+    async onSquadBaiting(oldSquad, newSquad) {
+        // this.verbose(1, 'Squad baiting', oldSquad, newSquad)
+        // await this.warn(oldSquad.leader.steamID, 'Squad baiting is not allowed!')
+        await this.warnAdmins(`[${oldSquad.leader.name}] is doing squad baiting.\n  Player's baits: ${oldSquad.leader.baitingCounter}\n\n  Squad Info:\n   Name: ${oldSquad.squadName}\n   Number: ${oldSquad.squadID}\n   Team: ${oldSquad.teamID}\n   Baits: ${oldSquad.baitingCounter}`)
+
+        const activePlayerRules = this.options.playerRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.leader.baitingCounter && r.baitingCounter.max >= oldSquad.leader.baitingCounter);
+        const activeSquadRules = this.options.squadRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.baitingCounter && r.baitingCounter.max >= oldSquad.baitingCounter);
+        this.verbose(1, 'Triggered PLAYER rules', activePlayerRules.map(r => r.name))
+        this.verbose(1, 'Triggered SQUAD rules', activeSquadRules.map(r => r.name))
+
+        for (let r of activePlayerRules.concat(activeSquadRules)) {
+            if (!r.enabled) continue;
+            for (let a of r.actions) {
+                const formattedContent = this.formatActionContent(a.content, oldSquad, newSquad);
+                this.verbose(1,'Formatted action content', formattedContent)
+                switch (a.type.toLowerCase()) {
+                    case 'rcon':
+                        this.server.rcon.execute(formattedContent)
+                        break;
+                }
+            }
+        }
+    }
+
+    formatActionContent(content, oldSquad, newSquad) {
+        return content
+            .replace(/\{squad:teamid\}/ig, oldSquad.teamID)
+            .replace(/\{squad:id\}/ig, oldSquad.squadID)
+            .replace(/\{squad:squadid\}/ig, oldSquad.squadID)
+            .replace(/\{squad:name\}/ig, oldSquad.squadName)
+            .replace(/\{old_leader:username\}/ig, oldSquad.leader.name)
+            .replace(/\{old_leader:steamid\}/ig, oldSquad.leader.steamID)
+            .replace(/\{old_leader:baitingcounter\}/ig, oldSquad.leader.baitingCounter)
+            .replace(/\{new_leader:username\}/ig, newSquad.leader.name)
+            .replace(/\{new_leader:steamid\}/ig, newSquad.leader.steamID)
+            .replace(/\{new_leader:baitingcounter\}/ig, newSquad.leader.baitingCounter)
     }
 }
