@@ -154,7 +154,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
     async onSquadBaiting(oldSquad, newSquad) {
         // this.verbose(1, 'Squad baiting', oldSquad, newSquad)
         // await this.warn(oldSquad.leader.steamID, 'Squad baiting is not allowed!')
-        await this.warnAdmins(`[${oldSquad.leader.name}] is doing squad baiting.\n  Player's baits: ${oldSquad.leader.baitingCounter}\n\n  Squad Info:\n   Name: ${oldSquad.squadName}\n   Number: ${oldSquad.squadID}\n   Team: ${oldSquad.teamID}\n   Baits: ${oldSquad.baitingCounter}`)
+        await this.warnAdmins(`[${oldSquad.leader.name}] is doing squad baiting.\n  Player's baits: ${oldSquad.leader.baitingCounter}\n\n  Squad Info:\n   Name: ${oldSquad.squadName}\n   Number: ${oldSquad.squadID}\n   Team: ${oldSquad.leader.role.split('_')[ 0 ]} (${oldSquad.teamID})\n   Baits: ${oldSquad.baitingCounter}`)
 
         const activePlayerRules = this.options.playerRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.leader.baitingCounter && r.baitingCounter.max >= oldSquad.leader.baitingCounter).map(r => ({ ...r, type: 'Player' }));
         const activeSquadRules = this.options.squadRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.baitingCounter && r.baitingCounter.max >= oldSquad.baitingCounter).map(r => ({ ...r, type: 'Squad' }));
