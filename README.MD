@@ -6,6 +6,7 @@ Squad Baiting plugin for SquadJS
 - `{squad:teamid}` TeamID of the squad
 - `{squad:squadid}` SquadID of the squad
 - `{squad:teamname}` Short name of the team
+- `{squad:baitingcounter}` Amount of squad baiting of the squad
 - `{old_leader:username}` Username of the previous squadleader
 - `{old_leader:steamid}` SteamID of the previous squadleader
 - `{old_leader:baitingcounter}` Amount of squad baiting of the previous squadleader

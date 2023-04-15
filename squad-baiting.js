@@ -205,6 +205,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
             .replace(/\{squad:squadid\}/ig, oldSquad.squadID)
             .replace(/\{squad:name\}/ig, oldSquad.squadName)
             .replace(/\{squad:teamname\}/ig, oldSquad.leader.role.split('_')[ 0 ])
+            .replace(/\{squad:baitingcounter\}/ig, newSquad?.baitingCounter)
             .replace(/\{old_leader:username\}/ig, oldSquad.leader.name)
             .replace(/\{old_leader:steamid\}/ig, oldSquad.leader.steamID)
             .replace(/\{old_leader:baitingcounter\}/ig, oldSquad.leader.baitingCounter)
