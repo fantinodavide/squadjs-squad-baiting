@@ -85,6 +85,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
         this.onNewGame = this.onNewGame.bind(this);
         this.resetPlayerCounters = this.resetPlayerCounters.bind(this);
         this.sendDiscordRuleLog = this.sendDiscordRuleLog.bind(this);
+        this.getSquads = this.getSquads.bind(this);
         // this.discordLog = this.discordLog.bind(this)
 
         this.playerBaiting = new Map();
@@ -108,12 +109,13 @@ export default class SquadBaiting extends DiscordBasePlugin {
             const playerRegex = /^ID:\s*(?<id>\d+)\s*\|\s*SteamID:\s*(?<steamID>\d+)\s*\|\s*Name:\s*(?<name>.*?)\s*\|\s*Team ID:\s*(?<teamID>\d+)\s*\|\s*Squad ID:\s*(?<squadID>\d+)\s*\|\s*Is Leader:\s*(?<isLeader>True|False)\s*\|\s*Role:\s*(?<role>[^|\s].*?)\s*$/im;
             const players = (await this.server.rcon.execute('ListPlayers')).split('\n').map(e => playerRegex.exec(e)?.groups).filter(e => e != null);
             // this.verbose(1, '', players)
-
-            const newSquads = this.server.squads.map(e => ({ ...e, leader: players.find(p => p.squadID == e.squadID && p.teamID == e.teamID && p.isLeader == 'True') }));
+            
+            const newSquads = (await this.getSquads()).map(e => ({ ...e, leader: players.find(p => p.squadID == e.squadID && p.teamID == e.teamID && p.isLeader == 'True') }));
             oldSquads.forEach(async s => {
+                // this.verbose(1, 'Squad info', s)
                 const match = newSquads.find(ns => ns.squadID == s.squadID && ns.teamID == s.teamID && ns.squadName == s.squadName)
                 const baiting = match && match.leader.steamID != s.leader.steamID;
-                const sqUid = `${s.teamID};${s.squadID};${s.squadName}`;
+                const sqUid = `${s.teamID};${s.squadID};${s.squadName};${s.creatorSteamID}`;
                 // this.verbose(1, 'baiting', sqUid, s.leader.name)
                 if (baiting) {
                     const plBaitingAmount = (this.playerBaiting.get(s.leader.steamID) || 0) + 1;
@@ -262,5 +264,37 @@ export default class SquadBaiting extends DiscordBasePlugin {
             },
             timestamp: (new Date()).toISOString()
         });
+    }
+
+    async getSquads() {
+        const responseSquad = await this.server.rcon.execute('ListSquads');
+        
+        const squads = [];
+        let teamName;
+        let teamID;
+
+        for (const line of responseSquad.split('\n')) {
+            const match = line.match(
+                /ID: ([0-9]+) \| Name: (.+) \| Size: ([0-9]+) \| Locked: (True|False) \| Creator Name: (\w+) \| Creator Steam ID: (\d+)/
+            );
+            const matchSide = line.match(/Team ID: (1|2) \((.+)\)/);
+            if (matchSide) {
+                teamID = matchSide[ 1 ];
+                teamName = matchSide[ 2 ];
+            }
+            if (!match) continue;
+            await squads.push({
+                squadID: match[ 1 ],
+                squadName: match[ 2 ],
+                size: match[ 3 ],
+                locked: match[ 4 ],
+                teamID: teamID,
+                teamName: teamName,
+                creatorName: match[5],
+                creatorSteamID: match[6],
+            });
+        }
+
+        return squads;
     }
 }
