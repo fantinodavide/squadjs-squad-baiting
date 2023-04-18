@@ -73,6 +73,10 @@ Squad Baiting plugin for SquadJS
                 {
                     "type": "rcon",
                     "content": "AdminDisbandSquad {squad:teamid} {squad:squadid}"
+                },
+                {
+                    "type": "warn-admins",
+                    "content": "{old_leader:name} is doing squadbaiting"
                 }
             ]
         },

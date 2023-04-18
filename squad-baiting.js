@@ -109,7 +109,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
             const playerRegex = /^ID:\s*(?<id>\d+)\s*\|\s*SteamID:\s*(?<steamID>\d+)\s*\|\s*Name:\s*(?<name>.*?)\s*\|\s*Team ID:\s*(?<teamID>\d+)\s*\|\s*Squad ID:\s*(?<squadID>\d+)\s*\|\s*Is Leader:\s*(?<isLeader>True|False)\s*\|\s*Role:\s*(?<role>[^|\s].*?)\s*$/im;
             const players = (await this.server.rcon.execute('ListPlayers')).split('\n').map(e => playerRegex.exec(e)?.groups).filter(e => e != null);
             // this.verbose(1, '', players)
-            
+
             const newSquads = (await this.getSquads()).map(e => ({ ...e, leader: players.find(p => p.squadID == e.squadID && p.teamID == e.teamID && p.isLeader == 'True') }));
             oldSquads.forEach(async s => {
                 // this.verbose(1, 'Squad info', s)
@@ -172,6 +172,11 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 switch (a.type.toLowerCase()) {
                     case 'rcon':
                         this.server.rcon.execute(formattedContent)
+                        break;
+                    case 'warn-admins':
+                    case 'warnadmins':
+                    case 'warn_admins':
+                        this.warnAdmins(formattedContent)
                         break;
                 }
             }
@@ -268,7 +273,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     async getSquads() {
         const responseSquad = await this.server.rcon.execute('ListSquads');
-        
+
         const squads = [];
         let teamName;
         let teamID;
@@ -290,8 +295,8 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 locked: match[ 4 ],
                 teamID: teamID,
                 teamName: teamName,
-                creatorName: match[5],
-                creatorSteamID: match[6],
+                creatorName: match[ 5 ],
+                creatorSteamID: match[ 6 ],
             });
         }
 
