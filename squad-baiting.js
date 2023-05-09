@@ -54,6 +54,11 @@ export default class SquadBaiting extends DiscordBasePlugin {
                     }
                 ]
             },
+            playerThreshold: {
+                required: false,
+                default: 60,
+                description: ''
+            },
             squadRules: {
                 required: false,
                 default: [],
@@ -109,13 +114,19 @@ export default class SquadBaiting extends DiscordBasePlugin {
         let oldSquads = [];
 
         setInterval(async () => {
-            await this.server.updateSquadList();
+            if (this.server.players.length < this.options.playerThreshold) return;
+            this.verbose(1, `Players: ${this.server.players.length}/${this.options.playerThreshold}`)
+            // await this.server.updateSquadList();
             // const squads = this.verbose(1, '', (await this.server.rcon.execute('ListSquads')).split('\n').map(e => /^ID:\s*(?<squadID>\d+)\s*\|\s*Name:\s*(?<squadName>[^|\s].*?)\s*\|\s*Size:\s*(?<size>\d+)\s*\|\s*Locked:\s*(?<locked>True|False)\s*\|\s*Creator Name:\s*(?<creator_name>[^|\s].*?)\s*\|\s*Creator Steam ID:\s*(?<creator_steam_id>\d+)$/i.exec(e)?.groups).filter(e => e != null));
             const playerRegex = /^ID:\s*(?<id>\d+)\s*\|\s*SteamID:\s*(?<steamID>\d+)\s*\|\s*Name:\s*(?<name>.*?)\s*\|\s*Team ID:\s*(?<teamID>\d+)\s*\|\s*Squad ID:\s*(?<squadID>\d+)\s*\|\s*Is Leader:\s*(?<isLeader>True|False)\s*\|\s*Role:\s*(?<role>[^|\s].*?)\s*$/im;
             const players = (await this.server.rcon.execute('ListPlayers')).split('\n').map(e => playerRegex.exec(e)?.groups).filter(e => e != null);
             // this.verbose(1, '', players)
 
-            const newSquads = (await this.getSquads()).map(e => ({ ...e, leader: players.find(p => p.squadID == e.squadID && p.teamID == e.teamID && p.isLeader == 'True') }));
+            const newSquads = (await this.getSquads()).map(e => ({
+                ...e,
+                leader: players.find(p => p.squadID == e.squadID && p.teamID == e.teamID && p.isLeader == 'True'),
+                players: players.filter(p => p.squadID == e.squadID && p.teamID == e.teamID),
+            }));
             oldSquads.forEach(async s => {
                 // this.verbose(1, 'Squad info', s)
                 const match = newSquads.find(ns => ns.squadID == s.squadID && ns.teamID == s.teamID && ns.squadName == s.squadName)
@@ -158,6 +169,12 @@ export default class SquadBaiting extends DiscordBasePlugin {
         }
     }
 
+    async warnSquadMembers(squad, message) {
+        squad.players.forEach(p => {
+            this.warn(p.steamID, message);
+        })
+    }
+
     async onSquadBaiting(oldSquad, newSquad) {
         // this.verbose(1, 'Squad baiting', oldSquad, newSquad)
         // await this.warn(oldSquad.leader.steamID, 'Squad baiting is not allowed!')
@@ -182,6 +199,11 @@ export default class SquadBaiting extends DiscordBasePlugin {
                     case 'warnadmins':
                     case 'warn_admins':
                         this.warnAdmins(formattedContent)
+                        break;
+                    case 'warn-members':
+                    case 'warn_members':
+                    case 'warnmembers':
+                        this.warnSquadMembers(newSquad, formattedContent)
                         break;
                 }
             }
@@ -285,7 +307,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
         for (const line of responseSquad.split('\n')) {
             const match = line.match(
-                /ID: ([0-9]+) \| Name: (.+) \| Size: ([0-9]+) \| Locked: (True|False) \| Creator Name: (\w+) \| Creator Steam ID: (\d+)/
+                /ID: ([0-9]+) \| Name: (.+) \| Size: ([0-9]+) \| Locked: (True|False) \| Creator Name: (.+) \| Creator Steam ID: (\d+)/
             );
             const matchSide = line.match(/Team ID: (1|2) \((.+)\)/);
             if (matchSide) {
