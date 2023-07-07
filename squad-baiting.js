@@ -57,7 +57,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
             playerThreshold: {
                 required: false,
                 default: 60,
-                description: ''
+                description: 'will not run the checks if player count is below the threshold'
             },
             squadRules: {
                 required: false,
@@ -100,6 +100,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
         this.playerBaiting = new Map();
         this.squadsBaiting = new Map();
+        this.squadsLeaderHistory = new Map();
 
         this.broadcast = (msg) => { this.server.rcon.broadcast(msg); };
         this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); };
@@ -139,6 +140,12 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
                     const sqBaitsAmount = (this.squadsBaiting.get(sqUid) || 0) + 1;
                     this.squadsBaiting.set(sqUid, sqBaitsAmount)
+
+                    if (!this.squadsLeaderHistory.get(sqUid)) this.squadsLeaderHistory.set(sqUid, [])
+                    this.squadsLeaderHistory.get(sqUid).push({
+                        steamID: s.leader.steamID,
+                        name: s.leader.name
+                    })
 
                     s.baitingCounter = sqBaitsAmount
                     s.leader.baitingCounter = plBaitingAmount
@@ -195,6 +202,9 @@ export default class SquadBaiting extends DiscordBasePlugin {
                     case 'rcon':
                         this.server.rcon.execute(formattedContent)
                         break;
+                    case 'limitsl':
+                        this.server.emit('LIMITSL:REQUEST', { leader: oldSquad.leader, duration: a.content || 3 }) // duration in days
+                        break;
                     case 'warn-admins':
                     case 'warnadmins':
                     case 'warn_admins':
@@ -233,6 +243,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
     }
 
     formatActionContent(content, oldSquad, newSquad) {
+        if (typeof content == 'number') return content
         return content
             .replace(/\{squad:teamid\}/ig, oldSquad.teamID)
             .replace(/\{squad:id\}/ig, oldSquad.squadID)
@@ -250,22 +261,25 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     async sendDiscordRuleLog(rule, oldSquad, newSquad) {
         if (rule.discordLogging === false) return;
+        const sqUid = `${oldSquad.teamID};${oldSquad.squadID};${oldSquad.squadName};${oldSquad.creatorSteamID}`;
         const actionsEmbedFields = rule.actions.filter(act => act.enabled || act.enabled == undefined).map(a => ({ name: a.type.toUpperCase(), value: `\`\`\`${a.formattedContent}\`\`\``, inline: false }))
+        const leadersHistory = this.squadsLeaderHistory.get(sqUid).map(l => ({ name: l.name, value: `\`\`\`${l.steamID}\`\`\``, inline: true }))
         await this.sendDiscordMessage({
             embed: {
                 title: `[${oldSquad.leader.name}] Squad-Baiting`,
                 color: "ee1111",
                 fields: [
-                    {
-                        name: 'Leader\'s Username',
-                        value: oldSquad.leader.name,
-                        inline: true
-                    },
-                    {
-                        name: 'Leader\'s SteamID',
-                        value: `[${oldSquad.leader.steamID}](https://steamcommunity.com/profiles/${oldSquad.leader.steamID})`,
-                        inline: true
-                    },
+                    ...leadersHistory,
+                    // {
+                    //     name: 'Leader\'s Username',
+                    //     value: oldSquad.leader.name,
+                    //     inline: true
+                    // },
+                    // {
+                    //     name: 'Leader\'s SteamID',
+                    //     value: `[${oldSquad.leader.steamID}](https://steamcommunity.com/profiles/${oldSquad.leader.steamID})`,
+                    //     inline: true
+                    // },
                     {
                         name: 'Team & Squad',
                         value: `Team: ${oldSquad.teamID}, Squad: ${oldSquad.squadID}`,
