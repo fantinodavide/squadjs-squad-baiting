@@ -79,6 +79,23 @@ export default class SquadBaiting extends DiscordBasePlugin {
                         ]
                     }
                 ]
+            },
+            earlySquadBaitingRules: {
+                required: false,
+                default: [],
+                description: 'Set of rules that will be applied on squadbaiting events happened during the first minute since squad creation',
+                example: [
+                    {
+                        name: 'Martian-readable name',
+                        enabled: true,
+                        actions: [
+                            {
+                                type: 'rcon',
+                                content: 'AdminWarn {}'
+                            }
+                        ]
+                    }
+                ]
             }
         };
     }
@@ -101,6 +118,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
         this.playerBaiting = new Map();
         this.squadsBaiting = new Map();
         this.squadsLeaderHistory = new Map();
+        this.squadsCreationTime = new Map();
 
         this.broadcast = (msg) => { this.server.rcon.broadcast(msg); };
         this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); };
@@ -150,7 +168,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                     s.baitingCounter = sqBaitsAmount
                     s.leader.baitingCounter = plBaitingAmount
 
-                    this.onSquadBaiting(s, match)
+                    this.onSquadBaiting(s, match, sqUid)
                 }
             })
 
@@ -160,6 +178,8 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     onSquadCreated(info) {
         this.verbose(1, "Squad Created:", info.player.teamID, info.player.squadID)
+        const sqUid = `${info.player.teamID};${info.squadID};${info.squadName};${info.player.steamID}`;
+        this.squadsCreationTime.set(sqUid, new Date());
     }
 
     async unmount() {
@@ -182,17 +202,23 @@ export default class SquadBaiting extends DiscordBasePlugin {
         })
     }
 
-    async onSquadBaiting(oldSquad, newSquad) {
+    async onSquadBaiting(oldSquad, newSquad, sqUid) {
         // this.verbose(1, 'Squad baiting', oldSquad, newSquad)
         // await this.warn(oldSquad.leader.steamID, 'Squad baiting is not allowed!')
         if (!this.options.disableDefaultAdminWarns) await this.warnAdmins(`[${oldSquad.leader.name}] is doing squad baiting.\n  Player's baits: ${oldSquad.leader.baitingCounter}\n\n  Squad Info:\n   Name: ${oldSquad.squadName}\n   Number: ${oldSquad.squadID}\n   Team: ${oldSquad.leader.role.split('_')[ 0 ]} (${oldSquad.teamID})\n   Baits: ${oldSquad.baitingCounter}`)
 
+        let earlySquadBaitingRulesActive = false
+        if (Date.now() - +this.squadsCreationTime.get(sqUid) < 60 * 1000) earlySquadBaitingRulesActive = true
+
         const activePlayerRules = this.options.playerRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.leader.baitingCounter && r.baitingCounter.max >= oldSquad.leader.baitingCounter).map(r => ({ ...r, type: 'Player' }));
         const activeSquadRules = this.options.squadRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.baitingCounter && r.baitingCounter.max >= oldSquad.baitingCounter).map(r => ({ ...r, type: 'Squad' }));
+        const activeEarlySquadBaitingRules = this.options.earlySquadBaitingRules.filter(r => earlySquadBaitingRulesActive && r.enabled).map(r => ({ ...r, type: 'Squad' }));
+
         this.verbose(1, 'Triggered PLAYER rules', activePlayerRules.map(r => r.name))
         this.verbose(1, 'Triggered SQUAD rules', activeSquadRules.map(r => r.name))
+        this.verbose(1, 'Triggered EARLY_SQUAD rules', activeEarlySquadBaitingRules.map(r => r.name))
 
-        for (let r of activePlayerRules.concat(activeSquadRules)) {
+        for (let r of activeEarlySquadBaitingRules.concat(activePlayerRules).concat(activeSquadRules)) {
             if (!r.enabled) continue;
             for (let a of r.actions.filter(act => act.enabled || act.enabled == undefined)) {
                 const formattedContent = this.formatActionContent(a.content, oldSquad, newSquad);
