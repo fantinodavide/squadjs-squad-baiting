@@ -14,6 +14,11 @@ Squad Baiting plugin for SquadJS
 - `{new_leader:steamid}` SteamID of the new squadleader
 - `{new_leader:baitingcounter}` Amount of squad baiting of the new squadleader
 
+### Rule Types
+- `playerRules`: The counters are based on the Player
+- `squadRules`: The counters are based on the Squad
+- `earlySquadBaitingRules`: No counters involved. Applies when a squadbaiting event is triggered within the first minute from squad creation
+
 ### Example configuration
 ```json
 {
@@ -93,6 +98,18 @@ Squad Baiting plugin for SquadJS
                     "type": "rcon",
                     "content": "AdminBroadcast \"Squad {squad:squadid} Team {squad:teamid} has been disbanded due to squad-baiting\""
                 },
+                {
+                    "type": "rcon",
+                    "content": "AdminDisbandSquad {squad:teamid} {squad:squadid}"
+                }
+            ]
+        }
+    ],
+    "earlySquadBaitingRules": [
+        {
+            "name": "Disband",
+            "enabled": true,
+            "actions": [
                 {
                     "type": "rcon",
                     "content": "AdminDisbandSquad {squad:teamid} {squad:squadid}"
