@@ -29,6 +29,7 @@ Squad Baiting plugin for SquadJS
     "resetPlayerCountersAtNewGame": true,
     "warnInGameAdmins": true,
     "disableDefaultAdminWarns": false,
+    "detectEarlySquadbaitingMinutes": 1,
     "playerRules": [
         {
             "name": "Squad baiting is not allowed",

@@ -33,6 +33,11 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 default: false,
                 description: ''
             },
+            detectEarlySquadbaitingMinutes: {
+                required: false,
+                default: 1,
+                description: 'How many minutes from squad creation time can trigger early squadbaiting rules'
+            },
             playerRules: {
                 required: false,
                 default: [],
@@ -208,7 +213,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
         if (!this.options.disableDefaultAdminWarns) await this.warnAdmins(`[${oldSquad.leader.name}] is doing squad baiting.\n  Player's baits: ${oldSquad.leader.baitingCounter}\n\n  Squad Info:\n   Name: ${oldSquad.squadName}\n   Number: ${oldSquad.squadID}\n   Team: ${oldSquad.leader.role.split('_')[ 0 ]} (${oldSquad.teamID})\n   Baits: ${oldSquad.baitingCounter}`)
 
         let earlySquadBaitingRulesActive = false
-        if (Date.now() - +this.squadsCreationTime.get(sqUid) < 60 * 1000) earlySquadBaitingRulesActive = true
+        if (Date.now() - +this.squadsCreationTime.get(sqUid) < this.options.detectEarlySquadbaitingMinutes * 60 * 1000) earlySquadBaitingRulesActive = true
 
         const activePlayerRules = this.options.playerRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.leader.baitingCounter && r.baitingCounter.max >= oldSquad.leader.baitingCounter).map(r => ({ ...r, type: 'Player' }));
         const activeSquadRules = this.options.squadRules.filter(r => r.enabled && r.baitingCounter.min <= oldSquad.baitingCounter && r.baitingCounter.max >= oldSquad.baitingCounter).map(r => ({ ...r, type: 'Squad' }));
