@@ -33,6 +33,11 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 default: false,
                 description: ''
             },
+            roleChangeTriggersSquadBaiting: {
+                required: false,
+                default: true,
+                description: 'Applies only when switching to a non-SL kit, only during early squad baiting rule time window'
+            },
             detectEarlySquadbaitingMinutes: {
                 required: false,
                 default: 1,
@@ -153,10 +158,17 @@ export default class SquadBaiting extends DiscordBasePlugin {
             }));
             oldSquads.forEach(async s => {
                 // this.verbose(1, 'Squad info', s)
-                const match = newSquads.find(ns => ns.squadID == s.squadID && ns.teamID == s.teamID && ns.squadName == s.squadName)
-                const baiting = match && match.leader.steamID != s.leader.steamID;
                 const sqUid = `${s.teamID};${s.squadID};${s.squadName};${s.creatorSteamID}`;
-                // this.verbose(1, 'baiting', sqUid, s.leader.name)
+                const match = newSquads.find(ns => ns.squadID == s.squadID && ns.teamID == s.teamID && ns.squadName == s.squadName)
+                let earlySquadBaitingRulesActive = false
+                if (Date.now() - +this.squadsCreationTime.get(sqUid) < this.options.detectEarlySquadbaitingMinutes * 60 * 1000) earlySquadBaitingRulesActive = true
+
+                const roleChanged = this.options.roleChangeTriggersSquadBaiting && earlySquadBaitingRulesActive && !match.leader.role.match(/SL/i) && s.leader.role.match(/SL/i) && match.leader.steamID == s.leader.steamID;
+                const leaderChanged = match.leader.steamID != s.leader.steamID;
+                const baiting = match && (leaderChanged || roleChanged);
+
+                if (s.squadName.match(/TEST/i))
+                    this.verbose(1, 'Baiting Check', sqUid, s.leader.name, `ROLE-CHANGED-OPTION: ${this.options.roleChangeTriggersSquadBaiting} - ROLE-CHANGED: ${roleChanged} - LEADER-CHANGED: ${leaderChanged}`)
                 if (baiting) {
                     const plBaitingAmount = (this.playerBaiting.get(s.leader.steamID) || 0) + 1;
                     this.playerBaiting.set(s.leader.steamID, plBaitingAmount)

@@ -29,6 +29,7 @@ Squad Baiting plugin for SquadJS
     "resetPlayerCountersAtNewGame": true,
     "warnInGameAdmins": true,
     "disableDefaultAdminWarns": false,
+    "roleChangeTriggersSquadBaiting": true,
     "detectEarlySquadbaitingMinutes": 1,
     "playerRules": [
         {
