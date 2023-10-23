@@ -147,7 +147,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
             this.verbose(1, `Players: ${this.server.players.length}/${this.options.playerThreshold}`)
             // await this.server.updateSquadList();
             // const squads = this.verbose(1, '', (await this.server.rcon.execute('ListSquads')).split('\n').map(e => /^ID:\s*(?<squadID>\d+)\s*\|\s*Name:\s*(?<squadName>[^|\s].*?)\s*\|\s*Size:\s*(?<size>\d+)\s*\|\s*Locked:\s*(?<locked>True|False)\s*\|\s*Creator Name:\s*(?<creator_name>[^|\s].*?)\s*\|\s*Creator Steam ID:\s*(?<creator_steam_id>\d+)$/i.exec(e)?.groups).filter(e => e != null));
-            const playerRegex = /^ID:\s*(?<id>\d+)\s*\|\s*SteamID:\s*(?<steamID>\d+)\s*\|\s*Name:\s*(?<name>.*?)\s*\|\s*Team ID:\s*(?<teamID>\d+)\s*\|\s*Squad ID:\s*(?<squadID>\d+)\s*\|\s*Is Leader:\s*(?<isLeader>True|False)\s*\|\s*Role:\s*(?<role>[^|\s].*?)\s*$/im;
+            const playerRegex = /^ID:\s*(?<id>\d+)\s*\|\s*SteamID:\s*(?<steamID>\d+)\s*\|\s*Name:\s*(?<name>.*?)\s*\|\s*Team ID:\s*(?<teamID>\d+)\s*\|\s*Squad ID:\s*(?<squadID>[^\s]+)\s*\|\s*Is Leader:\s*(?<isLeader>True|False)\s*\|\s*Role:\s*(?<role>[^|\s].*?)\s*$/i;
             const players = (await this.server.rcon.execute('ListPlayers')).split('\n').map(e => playerRegex.exec(e)?.groups).filter(e => e != null);
             // this.verbose(1, '', players)
 
