@@ -166,7 +166,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 const sqUid = `${s.teamID};${s.squadID};${s.squadName};${s.creatorSteamID}`;
                 const match = newSquads.find(ns => ns.squadID == s.squadID && ns.teamID == s.teamID && ns.squadName == s.squadName)
 
-                if(!match){
+                if (!match) {
                     this.verbose(1, `Early squad baiting reset for: ${sqUid}. OLD-LEADER: ${s.leader.name}. Due to squad being disbanded`)
                     this.earlySquadBaitingMarkedSquads.delete(sqUid)
                 }
@@ -187,8 +187,11 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 const leaderChanged = match.leader.steamID != s.leader.steamID;
                 const baiting = match && (leaderChanged || roleChanged);
 
-                if (s.squadName.match(/TEST/i))
-                    this.verbose(1, 'Baiting Check', sqUid, s.leader.name, `ROLE-CHANGED-OPTION: ${this.options.roleChangeTriggersSquadBaiting} - ROLE-CHANGED: ${roleChanged} - LEADER-CHANGED: ${leaderChanged}`)
+                if (s.squadName.match(/TEST/i)) {
+                    this.verbose(1, 'Baiting Check', sqUid, s.leader.name, `ROLE-CHANGED-OPTION: ${this.options.roleChangeTriggersSquadBaiting} - EARLY-SBAITING: ${earlySquadBaitingDetected} - ROLE-CHANGED: ${roleChanged} - LEADER-CHANGED: ${leaderChanged} - SQUAD-AGE-SECONDS: ${(Date.now() - +this.squadsCreationTime.get(sqUid)) / 1000}`)
+                    if (roleChanged)
+                        this.warn(s.leader.steamID, 'You changed role')
+                }
                 if (baiting) {
                     if (earlySquadBaitingDetected && !this.earlySquadBaitingMarkedSquads.get(sqUid)) {
                         this.earlySquadBaitingMarkedSquads.set(sqUid, Date.now());
@@ -226,10 +229,13 @@ export default class SquadBaiting extends DiscordBasePlugin {
         this.squadsCreationTime.set(sqUid, new Date());
 
         if (!this.squadsLeaderHistory.get(sqUid)) this.squadsLeaderHistory.set(sqUid, [])
+        else this.squadsLeaderHistory.set(sqUid, [])
         this.squadsLeaderHistory.get(sqUid).push({
             steamID: info.player.steamID,
             name: info.player.name
         })
+
+        if (this.earlySquadBaitingMarkedSquads.get(sqUid)) this.earlySquadBaitingMarkedSquads.delete(sqUid)
     }
 
     async unmount() {
