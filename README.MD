@@ -31,6 +31,7 @@ Squad Baiting plugin for SquadJS
     "disableDefaultAdminWarns": false,
     "roleChangeTriggersSquadBaiting": true,
     "detectEarlySquadbaitingMinutes": 1,
+    "enforceEarlySquadBaitingAfterSeconds": 30,
     "playerRules": [
         {
             "name": "Squad baiting is not allowed",
