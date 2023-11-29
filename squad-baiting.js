@@ -185,7 +185,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
                 const roleChanged = this.options.roleChangeTriggersSquadBaiting && earlySquadBaitingDetected && !match.leader.role.match(/SL/i) && s.leader.role.match(/SL/i) && match.leader.steamID == s.leader.steamID;
                 const leaderChanged = match.leader.steamID != s.leader.steamID;
-                const baiting = match && (leaderChanged || roleChanged);
+                const baiting = match && (leaderChanged || roleChanged) && !s.squadName.match(/admin/i);
 
                 if (s.squadName.match(/TEST/i)) {
                     this.verbose(1, 'Baiting Check', sqUid, s.leader.name, `ROLE-CHANGED-OPTION: ${this.options.roleChangeTriggersSquadBaiting} - EARLY-SBAITING: ${earlySquadBaitingDetected} - ROLE-CHANGED: ${roleChanged} - LEADER-CHANGED: ${leaderChanged} - SQUAD-AGE-SECONDS: ${(Date.now() - +this.squadsCreationTime.get(sqUid)) / 1000}`)
