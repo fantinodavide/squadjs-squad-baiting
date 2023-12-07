@@ -169,6 +169,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 if (!match) {
                     this.verbose(1, `Early squad baiting reset for: ${sqUid}. OLD-LEADER: ${s.leader.name}. Due to squad being disbanded`)
                     this.earlySquadBaitingMarkedSquads.delete(sqUid)
+                    return;
                 }
 
                 const earlySquadBaitingDetected = (Date.now() - +this.squadsCreationTime.get(sqUid) < this.options.detectEarlySquadbaitingMinutes * 60 * 1000);
@@ -180,6 +181,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                     else {
                         this.earlySquadBaitingMarkedSquads.delete(sqUid)
                         this.verbose(1, `Early squad baiting reset for: ${sqUid}. CURRENT-LEADER: ${match.leader.name}`)
+                        return;
                     }
                 }
 
@@ -195,7 +197,8 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 if (baiting) {
                     if (earlySquadBaitingDetected && !this.earlySquadBaitingMarkedSquads.get(sqUid)) {
                         this.earlySquadBaitingMarkedSquads.set(sqUid, Date.now());
-                        this.warn(match.leader.steamID, `You have ${this.options.enforceEarlySquadBaitingAfterSeconds} seconds to equip a SQUAD LEADER role`);
+                        const squadbaitingSecondsAfterSquadCreation = Math.round((Date.now() - +this.squadsCreationTime.get(sqUid)) / 1000)
+                        this.warn(match.leader.steamID, `You have ${this.options.enforceEarlySquadBaitingAfterSeconds} seconds to equip a SQUAD LEADER role\nSquad baiting happened ${squadbaitingSecondsAfterSquadCreation} seconds after squad creation.`);
                     }
 
                     const plBaitingAmount = (this.playerBaiting.get(s.leader.steamID) || 0) + 1;
