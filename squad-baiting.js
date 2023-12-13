@@ -135,6 +135,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
         this.squadsLeaderHistory = new Map();
         this.squadsCreationTime = new Map();
         this.earlySquadBaitingMarkedSquads = new Map();
+        this.lastRoleChange = new Map();
 
         this.broadcast = (msg) => { this.server.rcon.broadcast(msg); };
         this.warn = (steamid, msg) => { this.server.rcon.warn(steamid, msg); };
@@ -151,9 +152,8 @@ export default class SquadBaiting extends DiscordBasePlugin {
         setInterval(async () => {
             if (this.server.players.length < this.options.playerThreshold) return;
             this.verbose(1, `Players: ${this.server.players.length}/${this.options.playerThreshold}`)
-            // await this.server.updateSquadList();
-            // const squads = this.verbose(1, '', (await this.server.rcon.execute('ListSquads')).split('\n').map(e => /^ID:\s*(?<squadID>\d+)\s*\|\s*Name:\s*(?<squadName>[^|\s].*?)\s*\|\s*Size:\s*(?<size>\d+)\s*\|\s*Locked:\s*(?<locked>True|False)\s*\|\s*Creator Name:\s*(?<creator_name>[^|\s].*?)\s*\|\s*Creator Steam ID:\s*(?<creator_steam_id>\d+)$/i.exec(e)?.groups).filter(e => e != null));
-            const playerRegex = /^ID:\s*(?<id>\d+)\s*\|\s*SteamID:\s*(?<steamID>\d+)\s*\|\s*Name:\s*(?<name>.*?)\s*\|\s*Team ID:\s*(?<teamID>\d+)\s*\|\s*Squad ID:\s*(?<squadID>[^\s]+)\s*\|\s*Is Leader:\s*(?<isLeader>True|False)\s*\|\s*Role:\s*(?<role>[^|\s].*?)\s*$/i;
+
+            const playerRegex = /ID: ([0-9]+) \| Online IDs: EOS: (?<eosID>[0-9a-f]{32}) steam: (?<steamID>\d{17}) \| Name: (?<name>.*?) \| Team ID: (?<teamID>[0-9]+) \| Squad ID: (?<squadID>[0-9]+|N\/A) \| Is Leader: (?<isLeader>True|False) \| Role: (?<role>[^\s]*)/;
             const players = (await this.server.rcon.execute('ListPlayers')).split('\n').map(e => playerRegex.exec(e)?.groups).filter(e => e != null);
 
             const newSquads = (await this.getSquads()).map(e => ({
@@ -423,7 +423,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
         for (const line of responseSquad.split('\n')) {
             const match = line.match(
-                /ID: ([0-9]+) \| Name: (.+) \| Size: ([0-9]+) \| Locked: (True|False) \| Creator Name: (.+) \| Creator Steam ID: (\d+)/
+                /ID: ([0-9]+) \| Name: (.+) \| Size: ([0-9]+) \| Locked: (True|False) \| Creator Name: (.+) \| Creator Online IDs: EOS: ([0-9a-f]{32}) steam: (\d{17})/
             );
             const matchSide = line.match(/Team ID: (1|2) \((.+)\)/);
             if (matchSide) {
@@ -435,11 +435,13 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 squadID: match[ 1 ],
                 squadName: match[ 2 ],
                 size: match[ 3 ],
-                locked: match[ 4 ],
+                locked: !!match[ 4 ].match(/true/i),
                 teamID: teamID,
                 teamName: teamName,
                 creatorName: match[ 5 ],
-                creatorSteamID: match[ 6 ],
+                creatorEOSID: match[ 6 ],
+                creatorSteamID: match[ 7 ],
+                players: []
             });
         }
 
