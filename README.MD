@@ -2,6 +2,7 @@
 Squad Baiting plugin for SquadJS
 
 ### Rule variables
+Usable in the rule action content.
 - `{squad:name}` Name of the squad
 - `{squad:teamid}` TeamID of the squad
 - `{squad:squadid}` SquadID of the squad
@@ -18,6 +19,12 @@ Squad Baiting plugin for SquadJS
 - `playerRules`: The counters are based on the Player
 - `squadRules`: The counters are based on the Squad
 - `earlySquadBaitingRules`: No counters involved. Applies when a squadbaiting event is triggered within the first minute from squad creation
+
+### Rule Actions
+- `rcon`: Executes a raw rcon command
+- `reset-counter`: Resets a counter for a player or a squad
+- `warn-admins`: Sends a warning to all the online admins
+- `warn-members`: Sends a warning to all the squad members
 
 ### Example configuration
 ```json
