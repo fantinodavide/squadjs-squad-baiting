@@ -303,6 +303,16 @@ export default class SquadBaiting extends DiscordBasePlugin {
                     case 'limitsl':
                         this.server.emit('LIMITSL:REQUEST', { leader: oldSquad.leader, duration: a.content || 3 }) // duration in days
                         break;
+                    case 'resetcounter':
+                    case 'reset-counter':
+                        switch (formattedContent) {
+                            case 'player':
+                                this.playerBaiting.delete(oldSquad.leader.steamID)
+                                break;
+                            case 'squad':
+                                this.squadsBaiting.delete(sqUid)
+                        }
+                        break;
                     case 'warn-admins':
                     case 'warnadmins':
                     case 'warn_admins':
