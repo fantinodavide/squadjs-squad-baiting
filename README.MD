@@ -39,6 +39,7 @@ Usable in the rule action content.
     "roleChangeTriggersSquadBaiting": true,
     "detectEarlySquadbaitingMinutes": 1,
     "enforceEarlySquadBaitingAfterSeconds": 30,
+    "ignoreClansMates": true,
     "playerRules": [
         {
             "name": "Squad baiting is not allowed",

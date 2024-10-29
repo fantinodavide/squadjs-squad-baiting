@@ -48,6 +48,11 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 default: 30,
                 description: 'How many seconds from the detection of early squadbaiting can pass before triggering early squadbaiting rules'
             },
+            ignoreClansMates: {
+                required: false,
+                default: true,
+                description: 'Avoid squad baiting detection if the first 3 characters of the old and new squad leader names match.'
+            },
             playerRules: {
                 required: false,
                 default: [],
@@ -187,8 +192,11 @@ export default class SquadBaiting extends DiscordBasePlugin {
                     }
                 }
 
+                const clanMatesInitialCharsCount = 3
+                const leadersAreClanMates = s.leader.name.slice(0,clanMatesInitialCharsCount) == match.leader.name.slice(0,clanMatesInitialCharsCount)
+
                 const roleChanged = this.options.roleChangeTriggersSquadBaiting && earlySquadBaitingDetected && !match.leader.role.match(/SL/i) && s.leader.role.match(/SL/i) && match.leader.eosID == s.leader.eosID;
-                const leaderChanged = match.leader.eosID != s.leader.eosID && match.players.length > 1;
+                const leaderChanged = match.leader.eosID != s.leader.eosID && match.players.length > 1 && !leadersAreClanMates;
                 const baiting = match && (leaderChanged || roleChanged) && !s.squadName.match(/admin/i);
 
                 if (s.squadName.match(/TEST/i)) {
