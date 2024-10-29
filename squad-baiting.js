@@ -196,7 +196,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 const leadersAreClanMates = s.leader.name.slice(0,clanMatesInitialCharsCount) == match.leader.name.slice(0,clanMatesInitialCharsCount)
 
                 const roleChanged = this.options.roleChangeTriggersSquadBaiting && earlySquadBaitingDetected && !match.leader.role.match(/SL/i) && s.leader.role.match(/SL/i) && match.leader.eosID == s.leader.eosID;
-                const leaderChanged = match.leader.eosID != s.leader.eosID && match.players.length > 1 && !leadersAreClanMates;
+                const leaderChanged = match.leader.eosID != s.leader.eosID && match.players.length > 1 && (!leadersAreClanMates && this.options.ignoreClansMates);
                 const baiting = match && (leaderChanged || roleChanged) && !s.squadName.match(/admin/i);
 
                 if (s.squadName.match(/TEST/i)) {
