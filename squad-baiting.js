@@ -219,7 +219,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
                     if (!this.squadsLeaderHistory.get(sqUid)) this.squadsLeaderHistory.set(sqUid, [])
 
-                    if (this.squadsLeaderHistory.get(sqUid).at(-1).steamID != s.leader.steamID)
+                    if (this.squadsLeaderHistory.get(sqUid).at(-1)?.steamID != s.leader.steamID)
                         this.squadsLeaderHistory.get(sqUid).push(s.leader)
 
                     s.baitingCounter = sqBaitsAmount
