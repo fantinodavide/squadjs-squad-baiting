@@ -195,12 +195,12 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 const clanMatesInitialCharsCount = 3
                 const leadersAreClanMates = s.leader.name.slice(0,clanMatesInitialCharsCount) == match.leader.name.slice(0,clanMatesInitialCharsCount)
 
-                const roleChanged = this.options.roleChangeTriggersSquadBaiting && earlySquadBaitingDetected && !match.leader.role.match(/SL/i) && s.leader.role.match(/SL/i) && match.leader.eosID == s.leader.eosID;
+                const roleChanged = this.options.roleChangeTriggersSquadBaiting && earlySquadBaitingDetected && !match.leader.role.match(/SL/i) && !!s.leader.role.match(/SL/i) && match.leader.eosID == s.leader.eosID;
                 const leaderChanged = match.leader.eosID != s.leader.eosID && match.players.length > 1 && (!leadersAreClanMates && this.options.ignoreClansMates);
                 const baiting = match && (leaderChanged || roleChanged) && !s.squadName.match(/admin/i);
 
                 if (s.squadName.match(/TEST/i)) {
-                    this.verbose(1, 'Baiting Check', sqUid, s.leader.name, `ROLE-CHANGED-OPTION: ${this.options.roleChangeTriggersSquadBaiting} - EARLY-SBAITING: ${earlySquadBaitingDetected} - ROLE-CHANGED: ${roleChanged} - LEADER-CHANGED: ${leaderChanged} - SQUAD-AGE-SECONDS: ${(Date.now() - +this.squadsCreationTime.get(sqUid)) / 1000}`)
+                    this.verbose(1, 'Baiting Check', sqUid, s.leader.name, `ROLE-CHANGED-OPTION: ${this.options.roleChangeTriggersSquadBaiting} - EARLY-SBAITING: ${earlySquadBaitingDetected} - ROLE-CHANGED: ${roleChanged} - LEADER-CHANGED: ${leaderChanged} - SQUAD-AGE-SECONDS: ${(Date.now() - +this.squadsCreationTime.get(sqUid)) / 1000} - CUR-ROLE: ${match.leader.role} - OLD-ROLE: ${s.leader.role}`)
                     if (roleChanged)
                         this.warn(s.leader.eosID, 'You changed role')
                 }
@@ -235,7 +235,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
     onSquadCreated(info) {
         this.verbose(1, "Squad Created:", info.player.teamID, info.player.squadID)
-        const sqUid = `${info.player.teamID};${info.squadID};${info.squadName};${info.player.steamID}`;
+        const sqUid = `${info.player.teamID};${info.squadID};${info.squadName};${info.player.eosID}`;
         this.squadsCreationTime.set(sqUid, new Date());
 
         if (!this.squadsLeaderHistory.get(sqUid)) this.squadsLeaderHistory.set(sqUid, [])
