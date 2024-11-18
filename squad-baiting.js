@@ -193,7 +193,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 }
 
                 const clanMatesInitialCharsCount = 3
-                const leadersAreClanMates = s.leader.name.slice(0,clanMatesInitialCharsCount) == match.leader.name.slice(0,clanMatesInitialCharsCount)
+                const leadersAreClanMates = s.leader.name.slice(0, clanMatesInitialCharsCount) == match.leader.name.slice(0, clanMatesInitialCharsCount)
 
                 const roleChanged = this.options.roleChangeTriggersSquadBaiting && earlySquadBaitingDetected && !match.leader.role.match(/SL/i) && !!s.leader.role.match(/SL/i) && match.leader.eosID == s.leader.eosID;
                 const leaderChanged = match.leader.eosID != s.leader.eosID && match.players.length > 1 && (!leadersAreClanMates && this.options.ignoreClansMates);
@@ -425,9 +425,9 @@ export default class SquadBaiting extends DiscordBasePlugin {
                         inline: false
                     },
                     ...actionsEmbedFields
-                ]
+                ],
+                timestamp: (new Date()).toISOString()
             },
-            timestamp: (new Date()).toISOString()
         });
     }
 
