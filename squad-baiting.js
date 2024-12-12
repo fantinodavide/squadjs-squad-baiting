@@ -163,7 +163,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
 
             const newSquads = (await this.getSquads()).map(e => ({
                 ...e,
-                leader: players.find(p => p.squadID == e.squadID && p.teamID == e.teamID && p.isLeader == 'True'),
+                leader: JSON.parse(JSON.stringify(players.find(p => p.squadID == e.squadID && p.teamID == e.teamID && p.isLeader == 'True'))),
                 players: players.filter(p => p.squadID == e.squadID && p.teamID == e.teamID),
                 sqUid: `${e.teamID};${e.squadID};${e.squadName};${e.creatorEOSID}`
             }));
@@ -193,7 +193,7 @@ export default class SquadBaiting extends DiscordBasePlugin {
                 }
 
                 const clanMatesInitialCharsCount = 3
-                const leadersAreClanMates = s.leader.name.slice(0, clanMatesInitialCharsCount) == match.leader.name.slice(0, clanMatesInitialCharsCount)
+                const leadersAreClanMates = s.leader.name.slice(0, clanMatesInitialCharsCount).toLowerCase() == match.leader.name.slice(0, clanMatesInitialCharsCount).toLowerCase()
 
                 const roleChanged = this.options.roleChangeTriggersSquadBaiting && earlySquadBaitingDetected && !match.leader.role.match(/SL/i) && !!s.leader.role.match(/SL/i) && match.leader.eosID == s.leader.eosID;
                 const leaderChanged = match.leader.eosID != s.leader.eosID && match.players.length > 1 && (!leadersAreClanMates && this.options.ignoreClansMates);
